@@ -1,0 +1,70 @@
+/*
+Subscription Churn & Retention Radar — DAX starter measures
+IMPORTANT:
+- Create each measure separately: Modeling > New measure.
+- Replace table/column names only if your imported model uses different names.
+- These measures assume customers and churn_flags are related by customer_id.
+- Revenue measures depend on your business definition. These examples use monthly_fee.
+*/
+
+Total Customers =
+DISTINCTCOUNT(customers[customer_id])
+
+Churned Customers =
+CALCULATE(
+    DISTINCTCOUNT(churn_flags[customer_id]),
+    churn_flags[is_churned] = 1
+)
+
+Retained Customers =
+CALCULATE(
+    DISTINCTCOUNT(churn_flags[customer_id]),
+    churn_flags[is_churned] = 0
+)
+
+Overall Churn Rate =
+DIVIDE([Churned Customers], [Total Customers], 0)
+
+Total Monthly Revenue =
+SUM(customers[monthly_fee])
+
+Churned Revenue at Risk =
+CALCULATE(
+    SUM(customers[monthly_fee]),
+    churn_flags[is_churned] = 1
+)
+
+/*
+If using risklevel_symmary:
+Create this measure to count high-risk customers.
+*/
+High Risk Customers =
+CALCULATE(
+    DISTINCTCOUNT(risklevel_symmary[customer_id]),
+    risklevel_symmary[risk_level] = "High Risk"
+)
+
+High Risk Active Revenue =
+CALCULATE(
+    SUM(risklevel_symmary[monthly_fee]),
+    risklevel_symmary[risk_level] = "High Risk"
+)
+
+/*
+Calculated column for usage_events, if you want a usage category:
+Modeling > New column (not New measure).
+*/
+Usage Level =
+IF(usage_events[minutes_used] <= 10, "Low Usage", "Normal Usage")
+
+/*
+Customer name lookup when a separate HighRisk_IDs table exists:
+Create this as a calculated column in HighRisk_IDs.
+The table must contain [Customer ID], and customers[customer_id] must be unique.
+*/
+Customer Name =
+LOOKUPVALUE(
+    customers[customer_name],
+    customers[customer_id],
+    HighRisk_IDs[Customer ID]
+)
